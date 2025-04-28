@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Juego de Memoria de Gatitos</title>
+  <style>
+    body {
+      font-family: 'Tahoma', cursive, sans-serif;
+      background: linear-gradient(to right, #7EC8E3 0%, #A5D8FF 100%); /* Azul y celeste */
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #006C99; /* Azul oscuro */
+      margin-bottom: 10px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .card {
+      perspective: 1000px;
+      width: 100%;
+      padding-top: 100%;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 15px;
+      backface-visibility: hidden;
+    }
+
+    .card-front {
+      background: #A5D8FF; /* Celeste */
+      border: 2px solid #006C99; /* Azul oscuro */
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      background-size: cover;
+      background-position: center;
+      border: 2px solid #006C99; /* Azul oscuro */
+    }
+
+    .win-message {
+      margin-top: 20px;
+      font-size: 24px;
+      color: #006C99; /* Azul oscuro */
+      animation: pop 0.5s ease forwards;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const images = [
+      'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgiEPFyeKv-JNZoSAuNFpE2gDzqWT84yw5uBV29w4nu92aY7GYcQoP4u1cqVCO_zsSS1M&usqp=CAU',
+      'https://i.pinimg.com/236x/78/b6/6c/78b66c1a2bdfded2e0621d884d3584c1.jpg',
+      'https://i.pinimg.com/736x/81/01/a4/8101a432ae9f1f92cb7aa0d87cec54de.jpg',
+      'https://i.pinimg.com/236x/34/31/95/343195464f8a4ba1748de800b4bdaaaf.jpg',
+      'https://i.pinimg.com/236x/05/49/86/05498664d54894f92c6523c50c1eb9e6.jpg',
+      'https://i.pinimg.com/236x/1d/40/0e/1d400e79e924b844848049f3e52172b2.jpg',
+      'https://preview.redd.it/silly-cat-memes-for-you-v0-6l9ihdcn423d1.jpg?width=640&crop=smart&auto=webp&s=81e67348702fbbea8609a94f599774d613eeba0e',
+      'https://www.patasencasa.com/sites/default/files/2024-07/meme-del-gato-riendo_0.jpg'
+    ];
+
+    function aleatorio(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    function Card({ image, isFlipped, onClick, matched }) {
+      return (
+        <div className={`card ${isFlipped || matched ? 'flipped' : ''}`} onClick={onClick}>
+          <div className="card-inner">
+            <div className="card-front"></div>
+            <div className="card-back" style={{ backgroundImage: `url(${image})` }}></div>
+          </div>
+        </div>
+      );
+    }
+
+    function Memoria() {
+      const [cards, setCards] = React.useState([]);
+      const [flipped, setFlipped] = React.useState([]);
+      const [matched, setMatched] = React.useState([]);
+      const [moves, setMoves] = React.useState(0);
+      const [won, setWon] = React.useState(false);
+
+      React.useEffect(() => {
+        const parejas = [...images, ...images];
+        const shuffledCards = aleatorio(parejas).map((img, index) => ({
+          id: index,
+          image: img
+        }));
+        setCards(shuffledCards);
+      }, []);
+
+      React.useEffect(() => {
+        if (matched.length === cards.length && cards.length > 0) {
+          setWon(true);
+        }
+      }, [matched, cards]);
+
+      function handleClick(cardIndex) {
+        if (flipped.length === 2 || flipped.includes(cardIndex) || matched.includes(cardIndex)) return;
+
+        const newFlipped = [...flipped, cardIndex];
+        setFlipped(newFlipped);
+
+        if (newFlipped.length === 2) {
+          setMoves(m => m + 1);
+          const [firstIndex, secondIndex] = newFlipped;
+          if (cards[firstIndex].image === cards[secondIndex].image) {
+            setMatched([...matched, firstIndex, secondIndex]);
+            setFlipped([]);
+          } else {
+            setTimeout(() => setFlipped([]), 1000);
+          }
+        }
+      }
+
+      return (
+        <div className="container">
+          <h1>Michi Memoria</h1>
+          <p>Movimientos: {moves}</p>
+          <div className="grid">
+            {cards.map((card, index) => (
+              <Card
+                key={card.id}
+                image={card.image}
+                isFlipped={flipped.includes(index)}
+                matched={matched.includes(index)}
+                onClick={() => handleClick(index)}
+              />
+            ))}
+          </div>
+          {won && <div className="win-message">¡Ganaste Crack!</div>}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<Memoria />);
+  </script>
+</body>
+</html>
